@@ -3,8 +3,15 @@ from datetime import datetime
 from airflow.providers.amazon.aws.transfers.sql_to_s3 import SqlToS3Operator
 from sql_scripts.queries import get_customers_with_active_products, get_customers_info
 
-conn_id_name = ""
-bucket_name = ""
+from airflow.models import Variable
+from airflow.models.connection import Connection
+from airflow.models.baseoperator import chain
+
+
+iam_role = Variable.get('iam_role')
+bucket_name = Variable.get('bucket_name')
+customers_conn = 'customers'
+products_conn = 'products' 
 
 dag_description = """
 This is a daily dag created as an illustration on how to 
@@ -32,17 +39,17 @@ def fancy_dag():
         def from_db_to_s3_queries():
             customers_info = SqlToS3Operator(
                 task_id="get_customers_info",
-                sql_conn_id=conn_id_name,
+                sql_conn_id=customers_conn,
                 query=get_customers_info["query"],
                 s3_bucket=bucket_name,
                 s3_key=get_customers_info["key"],
                 replace=True,
-                file_format="parquet",
+                file_format="parquet"
             )
 
             active_products = SqlToS3Operator(
                 task_id="get_customers_with_active_products",
-                sql_conn_id=conn_id_name,
+                sql_conn_id=products_conn,
                 query=get_customers_with_active_products["query"],
                 s3_bucket=bucket_name,
                 s3_key=get_customers_with_active_products["key"],
@@ -57,6 +64,11 @@ def fancy_dag():
             print("Transform")
 
         transform_process = transform()
+
+        chain(
+            active_customers_queries,
+            transform_process
+        )
 
     active_customers_table = active_customers()
 

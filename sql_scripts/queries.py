@@ -1,16 +1,20 @@
+from airflow.models import Variable
+bucket_name = Variable.get('bucket_name')
+
 get_customers_info = {
-    "key": "",
+    "key": f"s3://{bucket_name}/extract/active_customers/get_customers_info.parquet",
     "query": """
             select 
                 customer_id,
                 age,
                 gender
+            from
             public.customer_info;
             """,
 }
 
 get_customers_with_active_products = {
-    "key": "",
+    "key": f"s3://{bucket_name}/extract/active_customers/get_customers_with_active_products.parquet",
     "query": """
             select 
                 cp.customer_id,
